@@ -303,11 +303,11 @@ Here’s an application of `map` and how it rewrites to optimized code:
       ys
     }
 
-### Relationship with Inline and Macros
+### Relationship with Transparent and Macros
 
 Seen by itself, principled meta-programming looks more like a
 framework for staging than one for compile-time meta programming with
-macros. But combined with Dotty’s `inline` it can be turned into a
+macros. But combined with Dotty’s `transparent` feature it can be turned into a
 compile-time system.  The idea is that macro elaboration can be
 understood as a combination of a macro library and a quoted
 program. For instance, here’s the `assert` macro again together with a
@@ -372,7 +372,7 @@ they were in a quoted context. For instance, the definition of
 the call from `assert` to `assertImpl` phase-correct, even if we
 assume that both definitions are local.
 
-The second role of `inline` in Dotty is to mark a `val` that is
+The second role of `transparent` in Dotty is to mark a `val` that is
 either a constant or is a parameter that will be a constant when instantiated. This
 aspect is also important for macro expansion.  To illustrate this,
 consider an implementation of the `power` function that makes use of a
@@ -396,7 +396,7 @@ constant, so the value of `n` will in fact be known at this
 point. To reflect this, we loosen the phase consistency requirements
 as follows:
 
- - If `x` is a transparent value (or a transparent parameter of an inline
+ - If `x` is a transparent value (or a transparent parameter of a transparent
    function) of type Boolean, Byte, Short, Int, Long, Float, Double,
    Char or String, it can be accessed in all contexts where the number
    of splices minus the number of quotes between use and definition

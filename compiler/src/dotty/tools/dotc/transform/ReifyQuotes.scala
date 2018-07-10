@@ -76,8 +76,8 @@ import dotty.tools.dotc.core.quoted._
  *      { ... x1$1 .... '{ ... T1$1.unary_~ ... x1$1.toExpr.unary_~ ... y1$1.unary_~ ... } ... }
  *    }
  *    ```
- *  Where `inline` parameters with type Boolean, Byte, Short, Int, Long, Float, Double, Char and String are
- *  passed as their actual runtime value. See `isStage0Value`. Other `inline` arguments such as functions are handled
+ *  Where `transparent` parameters with type Boolean, Byte, Short, Int, Long, Float, Double, Char and String are
+ *  passed as their actual runtime value. See `isStage0Value`. Other `transparent` arguments such as functions are handled
  *  like `y1: Y`.
  *
  *  Note: the parameters of `foo` are kept for simple overloading resolution but they are not used in the body of `foo`.
@@ -632,7 +632,7 @@ class ReifyQuotes extends MacroTransformWithImplicits with InfoTransformer {
         }
       }
 
-    /** Takes a reference to an inline parameter `tree` and lifts it to an Expr */
+    /** Takes a reference to an transparent parameter `tree` and lifts it to an Expr */
     private def liftInlineParamValue(tree: Tree)(implicit ctx: Context): Tree = {
       val tpSym = tree.tpe.widenDealias.classSymbol
 

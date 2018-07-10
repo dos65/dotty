@@ -548,7 +548,7 @@ object Flags {
   /** Either method or lazy or deferred */
   final val MethodOrLazyOrDeferred = Method | Lazy | Deferred
 
-  /** Labeled `private`, `final`, `inline`, or `transparent` */
+  /** Labeled `private`, `final`, or `transparent` */
   final val EffectivelyFinal = Private | Final | Transparent
 
   /** A private method */
@@ -587,7 +587,7 @@ object Flags {
   /** A deferred type member or parameter (these don't have right hand sides) */
   final val DeferredOrTypeParam = Deferred | TypeParam
 
-  /** value that's final, inline, or transparent */
+  /** value that's final or transparent */
   final val FinalOrTransparent = Final | Transparent
 
   /** A covariant type parameter instance */
