@@ -37,6 +37,11 @@ class FromTastyTests extends ParallelTesting {
         // MatchError in SymDenotation.sourceModule on a ThisType
         "t3612.scala",
 
+        // Cannot handle transparent annotations?
+        "i3129.scala",
+        "t6562.scala",
+        "i2980.scala",
+
         // Fails on MacOS
         "annot-bootstrap.scala",
       ),
