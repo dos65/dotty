@@ -2110,7 +2110,7 @@ class Typer extends Namer
     def readaptSimplified(tree: Tree)(implicit ctx: Context) = readapt(simplify(tree, pt, locked))
 
     def missingArgs(mt: MethodType) = {
-      ctx.error(MissingEmptyArgumentList(methPart(tree).symbol), tree.pos)
+      ctx.error(em"missing arguments for ${methPart(tree).symbol}", tree.pos)
       tree.withType(mt.resultType)
     }
 
