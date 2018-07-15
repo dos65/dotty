@@ -2320,10 +2320,12 @@ class Typer extends Namer
 
       // Reasons NOT to eta expand:
       //  - we reference a constructor
+      //  - we reference a typelevel method
       //  - we are in a pattern
       //  - the current tree is a synthetic apply which is not expandable (eta-expasion would simply undo that)
       if (arity >= 0 &&
           !tree.symbol.isConstructor &&
+          !tree.symbol.is(TypeLevel) &&
           !ctx.mode.is(Mode.Pattern) &&
           !(isSyntheticApply(tree) && !isExpandableApply))
         simplify(typed(etaExpand(tree, wtp, arity), pt), pt, locked)
