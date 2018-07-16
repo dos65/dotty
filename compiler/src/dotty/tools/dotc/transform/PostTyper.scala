@@ -193,13 +193,12 @@ class PostTyper extends MacroTransform with IdentityDenotTransformer { thisPhase
           else
             transformSelect(tree, Nil)
         case tree: Apply =>
-          val meth = methPart(tree)
-          val app: Apply =
-            if (meth.tpe.widen.isErasedMethod)
+          val app =
+            if (tree.fun.tpe.widen.isErasedMethod)
               tpd.cpy.Apply(tree)(tree.fun, tree.args.map(arg => defaultValue(arg.tpe)))
             else
               tree
-          meth match {
+          methPart(app) match {
             case Select(nu: New, nme.CONSTRUCTOR) if isCheckable(nu) =>
               // need to check instantiability here, because the type of the New itself
               // might be a type constructor.
@@ -268,8 +267,6 @@ class PostTyper extends MacroTransform with IdentityDenotTransformer { thisPhase
             tree
           }
           super.transform(tree)
-        case tree: MemberDef =>
-          ???
         case tree: New if isCheckable(tree) =>
           Checking.checkInstantiable(tree.tpe, tree.pos)
           super.transform(tree)
@@ -332,11 +329,7 @@ class PostTyper extends MacroTransform with IdentityDenotTransformer { thisPhase
     *  Performed to shrink the tree that is known to be erased later.
     */
     private def normalizeErasedRhs(rhs: Tree, sym: Symbol)(implicit ctx: Context) =
-      if (sym.is(Erased) && rhs.tpe.exists) {
-        println(i"normalizing $rhs to ${rhs.tpe}")
-        defaultValue(rhs.tpe)
-      }
-      else rhs
+      if (sym.is(Erased) && rhs.tpe.exists) defaultValue(rhs.tpe) else rhs
 
     private def checkNotErased(tree: RefTree)(implicit ctx: Context): Unit = {
       if (tree.symbol.is(Erased) && !ctx.mode.is(Mode.Type) && !ctx.inTransparentMethod) {

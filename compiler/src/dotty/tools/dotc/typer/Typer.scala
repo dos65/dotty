@@ -1005,6 +1005,7 @@ class Typer extends Namer
     accu(Set.empty, selType)
   }
 
+  /** Context with fresh GADT bounds for all gadtSyms */
   def gadtContext(gadtSyms: Set[Symbol])(implicit ctx: Context) = {
     val gadtCtx = ctx.fresh.setFreshGADTBounds
     for (sym <- gadtSyms)

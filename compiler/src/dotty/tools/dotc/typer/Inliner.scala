@@ -561,7 +561,7 @@ class Inliner(call: tpd.Tree, rhsToInline: tpd.Tree)(implicit ctx: Context) {
      */
     def reduceTopLevelMatch(scrutinee: Tree, scrutType: Type, cases: List[untpd.CaseDef], typer: Typer)(implicit ctx: Context): MatchRedux = {
 
-      val gadtCtx = typer.gadtContext(typer.gadtSyms(scrutType))
+      val gadtSyms = typer.gadtSyms(scrutType)
 
       /** Try to match pattern `pat` against scrutinee reference `scrut`. If succesful add
        *  bindings for variables bound in this pattern to `bindingsBuf`.
@@ -622,7 +622,7 @@ class Inliner(call: tpd.Tree, rhsToInline: tpd.Tree)(implicit ctx: Context) {
           }
         }
         val caseBindingsBuf = new mutable.ListBuffer[MemberDef]() += scrutineeBinding
-        val pat1 = typer.typedPattern(cdef.pat, scrutType)(gadtCtx)
+        val pat1 = typer.typedPattern(cdef.pat, scrutType)(typer.gadtContext(gadtSyms))
         if (reducePattern(caseBindingsBuf, scrutineeSym.termRef, pat1) && guardOK)
           Some((caseBindingsBuf.toList, cdef.body))
         else
