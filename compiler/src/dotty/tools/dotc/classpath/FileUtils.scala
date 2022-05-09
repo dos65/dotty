@@ -36,6 +36,8 @@ object FileUtils {
     def isPackage: Boolean = file.isDirectory && mayBeValidPackage(file.getName)
 
     def isClass: Boolean = file.isFile && file.getName.endsWith(".class") && !file.getName.endsWith("$class.class")
+
+    def isTasty: Boolean = file.isFile && file.getName.endsWith(".tasty")
       // FIXME: drop last condition when we stop being compatible with Scala 2.11
   }
 
@@ -81,4 +83,5 @@ object FileUtils {
   def mkFileFilter(f: JFile => Boolean): FileFilter = new FileFilter {
     def accept(pathname: JFile): Boolean = f(pathname)
   }
+
 }

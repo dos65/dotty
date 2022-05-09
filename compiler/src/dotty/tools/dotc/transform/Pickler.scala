@@ -15,6 +15,14 @@ import reporting.{ThrowingReporter, Profile}
 import collection.mutable
 import scala.concurrent.{Future, Await, ExecutionContext}
 import scala.concurrent.duration.Duration
+import dotty.tools.io.PlainFile
+import dotty.tools.io.File
+import java.nio.file.Paths
+import java.nio.file.Path
+import java.io.DataOutputStream
+import java.nio.channels.ClosedByInterruptException
+import dotty.tools.dotc.classpath.OutputFiles
+import java.nio.file.Files
 
 object Pickler {
   val name: String = "pickler"
@@ -56,17 +64,42 @@ class Pickler extends Phase {
     clss.filterNot(companionModuleClasses.contains)
   }
 
+  private def picklingTree(tree: Tree)(using Context): Tree = 
+    def dropBody(mem: MemberDef): MemberDef = 
+      mem match
+        case d: DefDef => cpy.DefDef(d)(rhs = EmptyTree)
+        case v: ValDef => cpy.ValDef(v)(rhs = EmptyTree)
+        case x => x
+    
+    if ctx.reporter.hasErrors && ctx.settings.YinteractiveTreesPath.value.nonEmpty then 
+      val treeMap = new TreeMap {
+        override def transform(t: Tree)(using Context): Tree = {
+          t match 
+            case tdef @ TypeDef(name, t: Template) => 
+              val filteredMembers = t.body.collect {
+                case mem: MemberDef if !mem.denot.info.isErroneous =>  dropBody(mem)
+              }
+              val parents = t.parents.filter(p => p.symbol.exists)
+              cpy.TypeDef(tdef)(name, cpy.Template(t)(parents = parents, body = filteredMembers))
+            case _ => super.transform(t)
+        }
+      }
+      treeMap.transform(tree)
+    else
+      tree
+
   override def run(using Context): Unit = {
     val unit = ctx.compilationUnit
     pickling.println(i"unpickling in run ${ctx.runId}")
 
     for
       cls <- dropCompanionModuleClasses(topLevelClasses(unit.tpdTree))
-      tree <- sliceTopLevel(unit.tpdTree, cls)
+      inputTree <- sliceTopLevel(unit.tpdTree, cls)
     do
+      val tree = picklingTree(inputTree)
       val pickler = new TastyPickler(cls)
       if ctx.settings.YtestPickler.value then
-        beforePickling(cls) = tree.show
+        beforePickling(cls) = inputTree.show
         picklers(cls) = pickler
       val treePkl = new TreePickler(pickler)
       treePkl.pickle(tree :: Nil)
@@ -121,6 +154,11 @@ class Pickler extends Phase {
             .setReporter(new ThrowingReporter(ctx.reporter))
             .addMode(Mode.ReadPositions)
             .addMode(Mode.PrintShowExceptions))
+
+    if ctx.settings.YinteractiveTreesPath.value.nonEmpty then
+      val dir = Paths.get(ctx.settings.YinteractiveTreesPath.value)
+      TastyWriter.write(dir.nn, result)
+
     result
   }
 

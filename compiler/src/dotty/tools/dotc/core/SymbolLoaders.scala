@@ -14,6 +14,7 @@ import Contexts._, Symbols._, Flags._, SymDenotations._, Types._, Scopes._, Name
 import NameOps._
 import StdNames._
 import classfile.ClassfileParser
+import classfile.TastyParser
 import Decorators._
 
 import util.Stats
@@ -407,15 +408,19 @@ class ClassfileLoader(val classfile: AbstractFile) extends SymbolLoader {
 
   def load(root: SymDenotation)(using Context): Unit = {
     val (classRoot, moduleRoot) = rootDenots(root.asClass)
-    val classfileParser = new ClassfileParser(classfile, classRoot, moduleRoot)(ctx)
-    val result = classfileParser.run()
-    if (mayLoadTreesFromTasty)
-      result match {
+    val isTasty = classfile.name.endsWith(".tasty")
+    val result = 
+      if isTasty then
+        new TastyParser(classfile, classRoot, moduleRoot)(ctx).run()
+      else
+        new ClassfileParser(classfile, classRoot, moduleRoot)(ctx).run()
+
+    if isTasty || mayLoadTreesFromTasty then
+      result match
         case Some(unpickler: tasty.DottyUnpickler) =>
           classRoot.classSymbol.rootTreeOrProvider = unpickler
           moduleRoot.classSymbol.rootTreeOrProvider = unpickler
         case _ =>
-      }
   }
 
   private def mayLoadTreesFromTasty(using Context): Boolean =

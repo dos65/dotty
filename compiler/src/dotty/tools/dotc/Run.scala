@@ -216,9 +216,14 @@ class Run(comp: Compiler, ictx: Context) extends ImplicitRunInfo with Constraint
       if (ctx.settings.YtestPickler.value) List("pickler")
       else ctx.settings.YstopAfter.value
 
+    var forceReachPhase =
+      if (ctx.settings.YinteractiveTreesPath.value.nonEmpty) Some("pickler")
+      else None
+
     val pluginPlan = ctx.base.addPluginPhases(ctx.base.phasePlan)
     val phases = ctx.base.fusePhases(pluginPlan,
       ctx.settings.Yskip.value, ctx.settings.YstopBefore.value, stopAfter, ctx.settings.Ycheck.value)
+    
     ctx.base.usePhases(phases)
 
     def runPhases(using Context) = {
@@ -226,11 +231,16 @@ class Run(comp: Compiler, ictx: Context) extends ImplicitRunInfo with Constraint
       val profiler = ctx.profiler
 
       for (phase <- ctx.base.allPhases)
-        if (phase.isRunnable)
+        if (phase.isRunnable || forceReachPhase.nonEmpty)
           Stats.trackTime(s"$phase ms ") {
             val start = System.currentTimeMillis
             val profileBefore = profiler.beforePhase(phase)
             units = phase.runOn(units)
+            forceReachPhase match {
+              case Some(v) if phase.phaseName == v =>
+                forceReachPhase = None
+              case _ =>
+            }
             profiler.afterPhase(phase, profileBefore)
             if (ctx.settings.Xprint.value.containsPhase(phase))
               for (unit <- units)
