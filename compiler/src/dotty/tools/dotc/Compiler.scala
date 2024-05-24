@@ -36,7 +36,7 @@ class Compiler {
     List(new TyperPhase) ::         // Compiler frontend: namer, typer
     List(new YCheckPositions) ::    // YCheck positions
 //    List(new sbt.ExtractDependencies) :: // Sends information on classes' dependencies to sbt via callbacks
-    List(new semanticdb.ExtractSemanticDB) :: // Extract info into .semanticdb files
+    // List(new semanticdb.ExtractSemanticDB) :: // Extract info into .semanticdb files
     List(new PostTyper) ::          // Additional checks and cleanups after type checking
     List(new sjs.PrepJSInterop) ::  // Additional checks and transformations for Scala.js (Scala.js only)
 //    List(new sbt.ExtractAPI) ::     // Sends a representation of the API of classes to sbt via callbacks
@@ -55,7 +55,7 @@ class Compiler {
 
   /** Phases dealing with the transformation from pickled trees to backend trees */
   protected def transformPhases: List[List[Phase]] =
-    List(new InstrumentCoverage) ::  // Perform instrumentation for code coverage (if -coverage-out is set)
+    // List(new InstrumentCoverage) ::  // Perform instrumentation for code coverage (if -coverage-out is set)
     List(new FirstTransform,         // Some transformations to put trees into a canonical form
          new CheckReentrant,         // Internal use only: Check that compiled program has no data races involving global vars
          new ElimPackagePrefixes,    // Eliminate references to package prefixes in Select nodes

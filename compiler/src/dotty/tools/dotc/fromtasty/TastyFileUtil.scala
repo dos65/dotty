@@ -19,7 +19,7 @@ object TastyFileUtil {
    */
   def getClassPath(file: AbstractFile): Option[String] =
     getClassName(file).map { className =>
-      val classInPath = className.replace(".", java.io.File.separator) + ".tasty"
+      val classInPath = className.replace(".", dotty.tools.io.PlatformFile.separator) + ".tasty"
       file.path.replace(classInPath, "")
     }
 

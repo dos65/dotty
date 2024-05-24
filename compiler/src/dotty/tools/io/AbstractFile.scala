@@ -233,7 +233,7 @@ abstract class AbstractFile extends Iterable[AbstractFile] {
   private def lookup(getFile: (AbstractFile, String, Boolean) => AbstractFile,
                      path0: String,
                      directory: Boolean): AbstractFile = {
-    val separator = java.io.File.separatorChar
+    val separator = dotty.tools.io.PlatformFile.separatorChar
     // trim trailing '/'s
     val path: String = if (path0.last == separator) path0 dropRight 1 else path0
     val length = path.length()

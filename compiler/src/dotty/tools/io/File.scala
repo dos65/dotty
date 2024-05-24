@@ -21,8 +21,8 @@ import scala.io.Codec
 /** ''Note:  This library is considered experimental and should not be used unless you know what you are doing.''
   */
 object File {
-  def pathSeparator: String = JavaIoFile.pathSeparator
-  def separator: String = JavaIoFile.separator
+  def pathSeparator: String = dotty.tools.io.PlatformFile.pathSeparator
+  def separator: String = dotty.tools.io.PlatformFile.separator
 
   def apply(path: String)(implicit codec: Codec): File = apply(
     PlatformPaths.get(path)

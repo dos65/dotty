@@ -16,13 +16,14 @@ import dotty.tools.io.AbstractFile
 
 object Profiler {
   def apply()(using Context): Profiler =
-    if (!ctx.settings.YprofileEnabled.value) NoOpProfiler
-    else {
-      val reporter = if (ctx.settings.YprofileDestination.value != "")
-        new StreamProfileReporter(new PrintWriter(new FileWriter(ctx.settings.YprofileDestination.value, true)))
-      else ConsoleProfileReporter
-      new RealProfiler(reporter)
-    }
+    NoOpProfiler
+    // if (!ctx.settings.YprofileEnabled.value) NoOpProfiler
+    // else {
+    //   val reporter = if (ctx.settings.YprofileDestination.value != "")
+    //     new StreamProfileReporter(new PrintWriter(new FileWriter(ctx.settings.YprofileDestination.value, true)))
+    //   else ConsoleProfileReporter
+    //   new RealProfiler(reporter)
+    // }
 
   private[profile] val emptySnap: ProfileSnap = ProfileSnap(0, "", 0, 0, 0, 0, 0, 0)
 }
@@ -81,184 +82,184 @@ private [profile] object NoOpProfiler extends Profiler {
 
   override def finished(): Unit = ()
 }
-private [profile] object RealProfiler {
-  import scala.jdk.CollectionConverters._
-  val runtimeMx: RuntimeMXBean = ManagementFactory.getRuntimeMXBean
-  val memoryMx: MemoryMXBean = ManagementFactory.getMemoryMXBean
-  val gcMx: List[GarbageCollectorMXBean] = ManagementFactory.getGarbageCollectorMXBeans.asScala.toList
-  val classLoaderMx: ClassLoadingMXBean = ManagementFactory.getClassLoadingMXBean
-  val compileMx: CompilationMXBean = ManagementFactory.getCompilationMXBean
-  val threadMx: ExtendedThreadMxBean = ExtendedThreadMxBean.proxy
-  if (threadMx.isThreadCpuTimeSupported) threadMx.setThreadCpuTimeEnabled(true)
-  private val idGen = new AtomicInteger()
-}
+// private [profile] object RealProfiler {
+//   import scala.jdk.CollectionConverters._
+//   val runtimeMx: RuntimeMXBean = ManagementFactory.getRuntimeMXBean
+//   val memoryMx: MemoryMXBean = ManagementFactory.getMemoryMXBean
+//   val gcMx: List[GarbageCollectorMXBean] = ManagementFactory.getGarbageCollectorMXBeans.asScala.toList
+//   val classLoaderMx: ClassLoadingMXBean = ManagementFactory.getClassLoadingMXBean
+//   val compileMx: CompilationMXBean = ManagementFactory.getCompilationMXBean
+//   val threadMx: ExtendedThreadMxBean = ExtendedThreadMxBean.proxy
+//   if (threadMx.isThreadCpuTimeSupported) threadMx.setThreadCpuTimeEnabled(true)
+//   private val idGen = new AtomicInteger()
+// }
 
-private [profile] class RealProfiler(reporter : ProfileReporter)(using Context) extends Profiler with NotificationListener {
-  def completeBackground(threadRange: ProfileRange): Unit =
-    reporter.reportBackground(this, threadRange)
+// private [profile] class RealProfiler(reporter : ProfileReporter)(using Context) extends Profiler with NotificationListener {
+//   def completeBackground(threadRange: ProfileRange): Unit =
+//     reporter.reportBackground(this, threadRange)
 
-  def outDir: AbstractFile = ctx.settings.outputDir.value
+//   def outDir: AbstractFile = ctx.settings.outputDir.value
 
-  val id: Int = RealProfiler.idGen.incrementAndGet()
+//   val id: Int = RealProfiler.idGen.incrementAndGet()
 
-  private val mainThread = Thread.currentThread()
+//   private val mainThread = Thread.currentThread()
 
-  @nowarn("cat=deprecation")
-  private[profile] def snapThread(idleTimeNanos: Long): ProfileSnap = {
-    import RealProfiler._
-    val current = Thread.currentThread()
+//   @nowarn("cat=deprecation")
+//   private[profile] def snapThread(idleTimeNanos: Long): ProfileSnap = {
+//     import RealProfiler._
+//     val current = Thread.currentThread()
 
-    ProfileSnap(
-      threadId = current.getId,
-      threadName = current.getName,
-      snapTimeNanos = System.nanoTime(),
-      idleTimeNanos = idleTimeNanos,
-      cpuTimeNanos = threadMx.getCurrentThreadCpuTime,
-      userTimeNanos = threadMx.getCurrentThreadUserTime,
-      allocatedBytes = threadMx.getThreadAllocatedBytes(Thread.currentThread().getId),
-      heapBytes = readHeapUsage()
-    )
-  }
-  private def readHeapUsage() = RealProfiler.memoryMx.getHeapMemoryUsage.getUsed
+//     ProfileSnap(
+//       threadId = current.getId,
+//       threadName = current.getName,
+//       snapTimeNanos = System.nanoTime(),
+//       idleTimeNanos = idleTimeNanos,
+//       cpuTimeNanos = threadMx.getCurrentThreadCpuTime,
+//       userTimeNanos = threadMx.getCurrentThreadUserTime,
+//       allocatedBytes = threadMx.getThreadAllocatedBytes(Thread.currentThread().getId),
+//       heapBytes = readHeapUsage()
+//     )
+//   }
+//   private def readHeapUsage() = RealProfiler.memoryMx.getHeapMemoryUsage.getUsed
 
-  @nowarn
-  private def doGC: Unit = {
-    System.gc()
-    System.runFinalization()
-  }
+//   @nowarn
+//   private def doGC: Unit = {
+//     System.gc()
+//     System.runFinalization()
+//   }
 
-  RealProfiler.gcMx foreach {
-    case emitter: NotificationEmitter => emitter.addNotificationListener(this, null, null)
-    case gc => println(s"Cant connect gcListener to ${gc.getClass}")
-  }
+//   RealProfiler.gcMx foreach {
+//     case emitter: NotificationEmitter => emitter.addNotificationListener(this, null, null)
+//     case gc => println(s"Cant connect gcListener to ${gc.getClass}")
+//   }
 
-  reporter.header(this)
+//   reporter.header(this)
 
-  override def finished(): Unit = {
-    //we may miss a GC event if gc is occurring as we call this
-    RealProfiler.gcMx foreach {
-      case emitter: NotificationEmitter => emitter.removeNotificationListener(this)
-      case gc =>
-    }
-    reporter.close(this)
-  }
-
-
-  override def handleNotification(notification: Notification, handback: scala.Any): Unit = {
-    import java.lang.{Long => jLong}
-    import java.lang.{Integer => jInt}
-    val reportNs = System.nanoTime()
-    val data = notification.getUserData
-    val seq = notification.getSequenceNumber
-    val message = notification.getMessage
-    val tpe = notification.getType
-    val time= notification.getTimeStamp
-    data match {
-      case cd: CompositeData if tpe == "com.sun.management.gc.notification" =>
-        val name = cd.get("gcName").toString
-        val action = cd.get("gcAction").toString
-        val cause = cd.get("gcCause").toString
-        val info = cd.get("gcInfo").asInstanceOf[CompositeData]
-        val duration = info.get("duration").asInstanceOf[jLong].longValue()
-        val startTime = info.get("startTime").asInstanceOf[jLong].longValue()
-        val endTime = info.get("endTime").asInstanceOf[jLong].longValue()
-        val threads = info.get("GcThreadCount").asInstanceOf[jInt].longValue()
-        reporter.reportGc(GcEventData("", reportNs, startTime, endTime, name, action, cause, threads))
-    }
-  }
-
-  override def afterPhase(phase: Phase, snapBefore: ProfileSnap): Unit = {
-    assert(mainThread eq Thread.currentThread())
-    val initialSnap = snapThread(0)
-    if (ctx.settings.YprofileExternalTool.value.contains(phase.toString)) {
-      println("Profile hook stop")
-      ExternalToolHook.after()
-    }
-    val finalSnap = if (ctx.settings.YprofileRunGcBetweenPhases.value.contains(phase.toString)) {
-      doGC
-      initialSnap.updateHeap(readHeapUsage())
-    }
-    else initialSnap
-
-    reporter.reportForeground(this, ProfileRange(snapBefore, finalSnap, phase, "", 0, Thread.currentThread))
-  }
-
-  override def beforePhase(phase: Phase): ProfileSnap = {
-    assert(mainThread eq Thread.currentThread())
-    if (ctx.settings.YprofileRunGcBetweenPhases.value.contains(phase.toString))
-      doGC
-    if (ctx.settings.YprofileExternalTool.value.contains(phase.toString)) {
-      println("Profile hook start")
-      ExternalToolHook.before()
-    }
-    snapThread(0)
-  }
-}
+//   override def finished(): Unit = {
+//     //we may miss a GC event if gc is occurring as we call this
+//     RealProfiler.gcMx foreach {
+//       case emitter: NotificationEmitter => emitter.removeNotificationListener(this)
+//       case gc =>
+//     }
+//     reporter.close(this)
+//   }
 
 
-case class EventType(name: String)
-object EventType {
-  //main thread with other tasks
-  val MAIN: EventType = EventType("main")
-  //other task ( background thread)
-  val BACKGROUND: EventType = EventType("background")
-  //total for compile
-  val GC: EventType = EventType("GC")
-}
+//   override def handleNotification(notification: Notification, handback: scala.Any): Unit = {
+//     import java.lang.{Long => jLong}
+//     import java.lang.{Integer => jInt}
+//     val reportNs = System.nanoTime()
+//     val data = notification.getUserData
+//     val seq = notification.getSequenceNumber
+//     val message = notification.getMessage
+//     val tpe = notification.getType
+//     val time= notification.getTimeStamp
+//     data match {
+//       case cd: CompositeData if tpe == "com.sun.management.gc.notification" =>
+//         val name = cd.get("gcName").toString
+//         val action = cd.get("gcAction").toString
+//         val cause = cd.get("gcCause").toString
+//         val info = cd.get("gcInfo").asInstanceOf[CompositeData]
+//         val duration = info.get("duration").asInstanceOf[jLong].longValue()
+//         val startTime = info.get("startTime").asInstanceOf[jLong].longValue()
+//         val endTime = info.get("endTime").asInstanceOf[jLong].longValue()
+//         val threads = info.get("GcThreadCount").asInstanceOf[jInt].longValue()
+//         reporter.reportGc(GcEventData("", reportNs, startTime, endTime, name, action, cause, threads))
+//     }
+//   }
 
-sealed trait ProfileReporter {
-  def reportBackground(profiler: RealProfiler, threadRange: ProfileRange): Unit
-  def reportForeground(profiler: RealProfiler, threadRange: ProfileRange): Unit
+//   override def afterPhase(phase: Phase, snapBefore: ProfileSnap): Unit = {
+//     assert(mainThread eq Thread.currentThread())
+//     val initialSnap = snapThread(0)
+//     if (ctx.settings.YprofileExternalTool.value.contains(phase.toString)) {
+//       println("Profile hook stop")
+//       ExternalToolHook.after()
+//     }
+//     val finalSnap = if (ctx.settings.YprofileRunGcBetweenPhases.value.contains(phase.toString)) {
+//       doGC
+//       initialSnap.updateHeap(readHeapUsage())
+//     }
+//     else initialSnap
 
-  def reportGc(data: GcEventData): Unit
+//     reporter.reportForeground(this, ProfileRange(snapBefore, finalSnap, phase, "", 0, Thread.currentThread))
+//   }
 
-  def header(profiler: RealProfiler) :Unit
-  def close(profiler: RealProfiler) :Unit
-}
-
-object ConsoleProfileReporter extends ProfileReporter {
-
-
-  override def reportBackground(profiler: RealProfiler, threadRange: ProfileRange): Unit =
-  // TODO
-    ???
-  override def reportForeground(profiler: RealProfiler, threadRange: ProfileRange): Unit =
-  // TODO
-    ???
-
-  override def close(profiler: RealProfiler): Unit = ()
-
-  override def header(profiler: RealProfiler): Unit =
-    println(s"Profiler start (${profiler.id}) ${profiler.outDir}")
-
-  override def reportGc(data: GcEventData): Unit =
-    println(s"Profiler GC reported ${data.gcEndMillis - data.gcStartMillis}ms")
-}
-
-class StreamProfileReporter(out:PrintWriter) extends ProfileReporter {
-  override def header(profiler: RealProfiler): Unit = {
-    out.println(s"info, ${profiler.id}, version, 2, output, ${profiler.outDir}")
-    out.println(s"header(main/background),startNs,endNs,runId,phaseId,phaseName,purpose,task-count,threadId,threadName,runNs,idleNs,cpuTimeNs,userTimeNs,allocatedByte,heapSize")
-    out.println(s"header(GC),startNs,endNs,startMs,endMs,name,action,cause,threads")
-  }
-
-  override def reportBackground(profiler: RealProfiler, threadRange: ProfileRange): Unit =
-    reportCommon(EventType.BACKGROUND, profiler, threadRange)
-  override def reportForeground(profiler: RealProfiler, threadRange: ProfileRange): Unit =
-    reportCommon(EventType.MAIN, profiler, threadRange)
-  @nowarn("cat=deprecation")
-  private def reportCommon(tpe:EventType, profiler: RealProfiler, threadRange: ProfileRange): Unit =
-    out.println(s"$tpe,${threadRange.start.snapTimeNanos},${threadRange.end.snapTimeNanos},${profiler.id},${threadRange.phase.id},${threadRange.phase.phaseName.replace(',', ' ')},${threadRange.purpose},${threadRange.taskCount},${threadRange.thread.getId},${threadRange.thread.getName},${threadRange.runNs},${threadRange.idleNs},${threadRange.cpuNs},${threadRange.userNs},${threadRange.allocatedBytes},${threadRange.end.heapBytes} ")
-
-  override def reportGc(data: GcEventData): Unit = {
-    val duration = TimeUnit.MILLISECONDS.toNanos(data.gcEndMillis - data.gcStartMillis + 1)
-    val start = data.reportTimeNs - duration
-    out.println(s"${EventType.GC},$start,${data.reportTimeNs},${data.gcStartMillis}, ${data.gcEndMillis},${data.name},${data.action},${data.cause},${data.threads}")
-  }
+//   override def beforePhase(phase: Phase): ProfileSnap = {
+//     assert(mainThread eq Thread.currentThread())
+//     if (ctx.settings.YprofileRunGcBetweenPhases.value.contains(phase.toString))
+//       doGC
+//     if (ctx.settings.YprofileExternalTool.value.contains(phase.toString)) {
+//       println("Profile hook start")
+//       ExternalToolHook.before()
+//     }
+//     snapThread(0)
+//   }
+// }
 
 
-  override def close(profiler: RealProfiler): Unit = {
-    out.flush
-    out.close
-  }
-}
+// case class EventType(name: String)
+// object EventType {
+//   //main thread with other tasks
+//   val MAIN: EventType = EventType("main")
+//   //other task ( background thread)
+//   val BACKGROUND: EventType = EventType("background")
+//   //total for compile
+//   val GC: EventType = EventType("GC")
+// }
+
+// sealed trait ProfileReporter {
+//   def reportBackground(profiler: RealProfiler, threadRange: ProfileRange): Unit
+//   def reportForeground(profiler: RealProfiler, threadRange: ProfileRange): Unit
+
+//   def reportGc(data: GcEventData): Unit
+
+//   def header(profiler: RealProfiler) :Unit
+//   def close(profiler: RealProfiler) :Unit
+// }
+
+// object ConsoleProfileReporter extends ProfileReporter {
+
+
+//   override def reportBackground(profiler: RealProfiler, threadRange: ProfileRange): Unit =
+//   // TODO
+//     ???
+//   override def reportForeground(profiler: RealProfiler, threadRange: ProfileRange): Unit =
+//   // TODO
+//     ???
+
+//   override def close(profiler: RealProfiler): Unit = ()
+
+//   override def header(profiler: RealProfiler): Unit =
+//     println(s"Profiler start (${profiler.id}) ${profiler.outDir}")
+
+//   override def reportGc(data: GcEventData): Unit =
+//     println(s"Profiler GC reported ${data.gcEndMillis - data.gcStartMillis}ms")
+// }
+
+// class StreamProfileReporter(out:PrintWriter) extends ProfileReporter {
+//   override def header(profiler: RealProfiler): Unit = {
+//     out.println(s"info, ${profiler.id}, version, 2, output, ${profiler.outDir}")
+//     out.println(s"header(main/background),startNs,endNs,runId,phaseId,phaseName,purpose,task-count,threadId,threadName,runNs,idleNs,cpuTimeNs,userTimeNs,allocatedByte,heapSize")
+//     out.println(s"header(GC),startNs,endNs,startMs,endMs,name,action,cause,threads")
+//   }
+
+//   override def reportBackground(profiler: RealProfiler, threadRange: ProfileRange): Unit =
+//     reportCommon(EventType.BACKGROUND, profiler, threadRange)
+//   override def reportForeground(profiler: RealProfiler, threadRange: ProfileRange): Unit =
+//     reportCommon(EventType.MAIN, profiler, threadRange)
+//   @nowarn("cat=deprecation")
+//   private def reportCommon(tpe:EventType, profiler: RealProfiler, threadRange: ProfileRange): Unit =
+//     out.println(s"$tpe,${threadRange.start.snapTimeNanos},${threadRange.end.snapTimeNanos},${profiler.id},${threadRange.phase.id},${threadRange.phase.phaseName.replace(',', ' ')},${threadRange.purpose},${threadRange.taskCount},${threadRange.thread.getId},${threadRange.thread.getName},${threadRange.runNs},${threadRange.idleNs},${threadRange.cpuNs},${threadRange.userNs},${threadRange.allocatedBytes},${threadRange.end.heapBytes} ")
+
+//   override def reportGc(data: GcEventData): Unit = {
+//     val duration = TimeUnit.MILLISECONDS.toNanos(data.gcEndMillis - data.gcStartMillis + 1)
+//     val start = data.reportTimeNs - duration
+//     out.println(s"${EventType.GC},$start,${data.reportTimeNs},${data.gcStartMillis}, ${data.gcEndMillis},${data.name},${data.action},${data.cause},${data.threads}")
+//   }
+
+
+//   override def close(profiler: RealProfiler): Unit = {
+//     out.flush
+//     out.close
+//   }
+// }

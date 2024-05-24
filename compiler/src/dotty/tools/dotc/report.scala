@@ -67,7 +67,7 @@ object report:
   def error(msg: Message, pos: SrcPos = NoSourcePosition)(using Context): Unit =
     val fullPos = addInlineds(pos)
     ctx.reporter.report(new Error(msg, fullPos))
-    if ctx.settings.YdebugError.value then Thread.dumpStack()
+    // if ctx.settings.YdebugError.value then Thread.dumpStack()
 
   def error(msg: => String, pos: SrcPos)(using Context): Unit =
     error(msg.toMessage, pos)
@@ -78,7 +78,7 @@ object report:
   def error(ex: TypeError, pos: SrcPos)(using Context): Unit =
     val fullPos = addInlineds(pos)
     ctx.reporter.report(new StickyError(ex.toMessage, fullPos))
-    if ctx.settings.YdebugError.value then Thread.dumpStack()
+    // if ctx.settings.YdebugError.value then Thread.dumpStack()
 
   def errorOrMigrationWarning(msg: Message, pos: SrcPos, from: SourceVersion)(using Context): Unit =
     if sourceVersion.isAtLeast(from) then

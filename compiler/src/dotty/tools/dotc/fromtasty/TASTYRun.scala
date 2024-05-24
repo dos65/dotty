@@ -22,9 +22,9 @@ class TASTYRun(comp: Compiler, ictx: Context) extends Run(comp, ictx) {
       file.extension match
         case "jar" =>
           JarArchive.open(Path(file.path), create = false).allFileNames()
-            .map(_.stripPrefix(File.separator)) // change paths from absolute to relative
+            .map(_.stripPrefix(dotty.tools.io.PlatformFile.separator)) // change paths from absolute to relative
             .filter(e => Path.extension(e) == "tasty" && !fromTastyIgnoreList(e))
-            .map(e => e.stripSuffix(".tasty").replace(File.separator, "."))
+            .map(e => e.stripSuffix(".tasty").replace(dotty.tools.io.PlatformFile.separator, "."))
             .toList
         case "tasty" => TastyFileUtil.getClassName(file)
         case _ =>

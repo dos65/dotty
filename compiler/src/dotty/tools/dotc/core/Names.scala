@@ -394,7 +394,7 @@ object Names {
             // cause other failures. In that case the first, important failure
             // is lost.
             System.err.nn.println("Backend should not call Name#toString, Name#mangledString should be used instead.")
-            Thread.dumpStack()
+            // Thread.dumpStack()
             assert(false)
           }
         new String(chrs, start, length)

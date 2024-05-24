@@ -1,7 +1,8 @@
 package dotty.tools.dotc.config
 
 import java.lang.Character.isWhitespace
-import java.nio.file.{Files, Paths}
+import dotty.tools.io.PlatformPaths
+import dotty.tools.io.PlatformFiles
 import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import scala.jdk.CollectionConverters.*
@@ -112,13 +113,13 @@ object CommandLineParser:
   /** Expands all arguments starting with @ to the contents of the file named like each argument.
    */
   def expandArg(arg: String): List[String] =
-    val path = Paths.get(arg.stripPrefix("@"))
-    if !Files.exists(path) then
+    val path = PlatformPaths.get(arg.stripPrefix("@"))
+    if !PlatformFiles.exists(path) then
       System.err.nn.println(s"Argument file ${path.nn.getFileName} could not be found")
       Nil
     else
       def stripComment(s: String) = s.indexOf('#') match { case -1 => s case i => s.substring(0, i) }
-      val lines = Files.readAllLines(path).nn
+      val lines = PlatformFiles.readAllLines(path).nn
       val params = lines.asScala.map(stripComment).filter(!_.nn.isEmpty).mkString(" ")
       tokenize(params)
 

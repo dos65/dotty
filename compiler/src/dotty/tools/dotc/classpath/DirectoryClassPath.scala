@@ -217,13 +217,13 @@ final class JrtClassPath(fs: PlatformFileSystem)
     def lookup(pack: PlatformPath): Seq[PlatformPath] =
       PlatformFiles
         .list(pack)
-        .iterator
-        .asScala
+        // .iterator
+        // .asScala
         .map(l =>
           if (PlatformFiles.isSymbolicLink(l)) PlatformFiles.readSymbolicLink(l)
           else l
         )
-        .toList
+        // .toList
     ps.map(p => (p.toString.stripPrefix("/packages/"), lookup(p))).toMap
   }
 
@@ -247,8 +247,8 @@ final class JrtClassPath(fs: PlatformFileSystem)
         .flatMap(x =>
           PlatformFiles
             .list(x.resolve(inPackage.dirPathTrailingSlash))
-            .iterator
-            .asScala
+            // .iterator
+            // .asScala
             .filter(_.getFileName.toString.endsWith(".class"))
         )
         .map(x => ClassFileEntryImpl(x.toPlainFile))
@@ -356,8 +356,8 @@ final class CtSymClassPath(ctSym: PlatformPath, release: Int)
         .flatMap(p =>
           PlatformFiles
             .list(p)
-            .iterator
-            .asScala
+            // .iterator
+            // .asScala
             .filter(_.getFileName.toString.endsWith(".sig"))
         )
       sigFiles.map(f => ClassFileEntryImpl(f.toPlainFile)).toVector

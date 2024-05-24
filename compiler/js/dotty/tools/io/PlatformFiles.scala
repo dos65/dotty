@@ -19,7 +19,7 @@ object PlatformFiles {
   def isDirectory (path: PlatformPath, options: PlatformLinkOption*): Boolean = ???
   def createDirectory[A](dir: PlatformPath, attrs: PlatformFileAttribute[A]*): PlatformPath = ???
   def createDirectories[A](dir: PlatformPath, attrs: PlatformFileAttribute[A]*): PlatformPath = ???
-  def list(dir: PlatformPath): JStream[PlatformPath] = ???
+  def list(dir: PlatformPath): scala.List[PlatformPath] = ???
   def newDirectoryStream(dir: PlatformPath): PlatformDirectoryStream[PlatformPath] = ???
   def walk(start: PlatformPath, options: PlatformFileVisitOption*): JStream[PlatformPath] = ???
   def exists(path: PlatformPath, options: PlatformLinkOption*): Boolean = ???
@@ -37,5 +37,6 @@ object PlatformFiles {
   def notExists(path: PlatformPath, options: PlatformLinkOption*): Boolean = ???
   def readAttributes(path: PlatformPath, attributes: String, options: PlatformLinkOption*): JMap[String, AnyRef] = ???
   def readAttributes(path: PlatformPath, options: PlatformLinkOption*): java.nio.file.attribute.BasicFileAttributes = ???
+  def readAllLines(path: PlatformPath): List[String] = ???
 }
 

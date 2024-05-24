@@ -22,7 +22,7 @@ class FromTastyTests {
     // > scalac -Ythrough-tasty -Ycheck:all <source>
 
     implicit val testGroup: TestGroup = TestGroup("posTestFromTasty")
-    compileTastyInDir(s"tests${JFile.separator}pos", defaultOptions,
+    compileTastyInDir(s"tests${dotty.tools.io.PlatformFile.separator}pos", defaultOptions,
       fromTastyFilter = FileFilter.exclude(TestSources.posFromTastyBlacklisted)
     ).checkCompile()
   }

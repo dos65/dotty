@@ -26,10 +26,10 @@ case class PackageName(dottedString: String) {
   val dirPathTrailingSlashJar: String = FileUtils.dirPathInJar(dottedString) + "/"
 
   val dirPathTrailingSlash: String =
-    if (java.io.File.separatorChar == '/')
+    if (dotty.tools.io.PlatformFile.separatorChar == '/')
       dirPathTrailingSlashJar
     else
-      FileUtils.dirPath(dottedString) + java.io.File.separator
+      FileUtils.dirPath(dottedString) + dotty.tools.io.PlatformFile.separator
 
   def isRoot: Boolean = dottedString.isEmpty
 

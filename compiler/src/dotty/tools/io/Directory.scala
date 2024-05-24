@@ -51,9 +51,9 @@ class Directory(jpath: PlatformPath) extends Path(jpath) {
     */
   def list: Iterator[Path] =
     if (isDirectory) {
-      val fileStream = PlatformFiles.list(jpath)
-      val files = fileStream.toArray(size => new Array[PlatformPath](size))
-      fileStream.close()
+      val files = PlatformFiles.list(jpath)
+      // val files = fileStream.toArray(size => new Array[PlatformPath](size))
+      // fileStream.close()
       files.iterator.map(Path.apply)
     } else Iterator.empty
 

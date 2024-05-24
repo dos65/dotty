@@ -33,7 +33,7 @@ class DefaultMessageLimiter extends MessageLimiter:
   override def recursionLimitExceeded()(using Context): Unit =
     if ctx.debug then
       report.warning("Exceeded recursion depth attempting to print.")
-      Thread.dumpStack()
+      // Thread.dumpStack()
 
 class SummarizeMessageLimiter(depth: Int) extends MessageLimiter:
   override val recurseLimit = recurseCount + depth

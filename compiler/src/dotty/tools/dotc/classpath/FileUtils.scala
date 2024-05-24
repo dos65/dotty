@@ -49,7 +49,7 @@ object FileUtils {
     else if (endsJava(fileName)) stripJavaExtension(fileName)
     else throw new FatalError("Unexpected source file ending: " + fileName)
 
-  def dirPath(forPackage: String): String = forPackage.replace('.', JFile.separatorChar)
+  def dirPath(forPackage: String): String = forPackage.replace('.', dotty.tools.io.PlatformFile.separatorChar)
 
   def dirPathInJar(forPackage: String): String = forPackage.replace('.', '/')
 

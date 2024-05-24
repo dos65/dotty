@@ -15,7 +15,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.chaining.given
 
-import java.io.File.separator
+import dotty.tools.io.PlatformFile.separator
 import java.nio.charset.StandardCharsets
 import java.nio.file.{FileSystemException, NoSuchFileException}
 import java.util.Optional
@@ -271,7 +271,7 @@ object SourceFile {
       try new String(file.toByteArray, codec.charSet).toCharArray
       catch
         case _: NoSuchFileException => Array.empty[Char]
-        case fse: FileSystemException if fse.getMessage.endsWith("Not a directory") => Array.empty[Char]
+        //case fse: FileSystemException if fse.getMessage.endsWith("Not a directory") => Array.empty[Char]
 
     if isScript(file, chars) then
       ScriptSourceFile(file, chars)
